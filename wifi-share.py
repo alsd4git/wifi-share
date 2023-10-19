@@ -9,7 +9,8 @@ from collections import OrderedDict
 import qrcode
 import qrcode.image.svg
 import PIL
-from PyInquirer import prompt
+# from PyInquirer import prompt
+import questionary
 from huepy import *
 import platform
 
@@ -54,10 +55,10 @@ def execute(commands, stdout=PIPE, stdin=PIPE, stderr=STDOUT):
     out, err = process.communicate();
     rc = process.returncode
     if out != None:
-        out = out.decode("utf-8").rstrip()
+        out = out.decode("iso-8859-1").rstrip()
     if rc != 0:
         if err != None:
-            err = err.decode("utf-8").rstrip()
+            err = err.decode("iso-8859-1").rstrip()
             raise ProcessError(err)
         else:
             raise ProcessError(out)
@@ -128,7 +129,8 @@ def main():
             try:
                 output = execute(['netsh', 'wlan', 'show', 'profiles']).rstrip()
                 for line in output.splitlines():
-                    if line.startswith('    All User Profile'):
+                    #TODO: find a better way to parse this
+                    if line.startswith('    All User Profile') or line.startswith('    Tutti i profili utente'):
                        available_networks.append(line.split(':')[1].lstrip())
                 if available_networks == []:
                     raise ProcessError
@@ -164,15 +166,20 @@ def main():
                 log(bad(e))
                 print(bad('Error getting Wi-Fi connections'))
                 sys.exit(1)
+        print(available_networks)
+        choices = [
+        {"name": network, "value": network}
+        for network in available_networks
+        ]
         questions = [
             {
                 'type': 'list',
                 'name': 'network',
                 'message': 'SSID:',
-                'choices' : available_networks
+                'choices' : choices
             }
         ]
-        answer = prompt(questions)
+        answer = questionary.prompt(questions)
         if answer == {}:
             raise KeyboardInterrupt
         wifi_name = answer['network']
@@ -221,7 +228,8 @@ def main():
             if system == 'Windows':
                 output = execute(['netsh', 'wlan', 'show', 'profile', wifi_name, 'key=clear']).rstrip()
                 for line in output.splitlines():
-                    if line.startswith('    Key Content'):
+                    #TODO: find a better way to get the password
+                    if line.startswith('    Key Content') or line.startswith('    Contenuto chiave'):
                        wifi_password = line.split(':')[1].lstrip()
             elif system == 'Darwin':
                 wifi_password = execute(['security', 'find-generic-password', '-wga', wifi_name])
