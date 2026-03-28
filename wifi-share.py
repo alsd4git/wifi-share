@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 from __future__ import print_function
 import argparse
 import subprocess
@@ -16,7 +16,7 @@ import platform
 
 verbose = True
 
-ascii_art='''
+ascii_art = r'''
  __          ___        ______ _      _____ _
  \ \        / (_)      |  ____(_)    / ____| |
   \ \  /\  / / _ ______| |__   _    | (___ | |__   __ _ _ __ ___
@@ -52,12 +52,12 @@ def execute(commands, stdout=PIPE, stdin=PIPE, stderr=STDOUT):
             log(run(bold('Running: ') + ' '.join(command)))
         process = Popen(command, stdout = stdout, stdin = input, stderr = stderr)
         input = process.stdout
-    out, err = process.communicate();
+    out, err = process.communicate()
     rc = process.returncode
-    if out != None:
+    if out is not None:
         out = out.decode("iso-8859-1").rstrip()
     if rc != 0:
-        if err != None:
+        if err is not None:
             err = err.decode("iso-8859-1").rstrip()
             raise ProcessError(err)
         else:
@@ -82,11 +82,11 @@ def fix_ownership(path): # Change the owner of the file to SUDO_UID
         os.chown(path, int(uid), int(gid))
 
 def create_QR_string(ssid = None, security = 'WPA', password = None):
-    if ssid != None:
-        if password != None:
-            return 'WIFI:T:WPA;S:' + escape(ssid) + ';P:' + escape(password) + ';;'
+    if ssid is not None:
+        if password is not None:
+            return 'WIFI:T:' + security + ';S:' + escape(ssid) + ';P:' + escape(password) + ';;'
         else:
-             return 'WIFI:S:' + escape(ssid) + ';;;'
+             return 'WIFI:T:nopass;S:' + escape(ssid) + ';;'
     return ''
 
 def create_QR_object(data):
@@ -132,7 +132,7 @@ def main():
                     #TODO: find a better way to parse this
                     if line.startswith('    All User Profile') or line.startswith('    Tutti i profili utente'):
                        available_networks.append(line.split(':')[1].lstrip())
-                if available_networks == []:
+                if not available_networks:
                     raise ProcessError
             except ProcessError as e:
                 log(bad(e))
@@ -145,7 +145,7 @@ def main():
                 for line in output.splitlines():
                     if line.startswith('            SSIDString ='):
                         available_networks.append(line.split('=')[1].lstrip()[:-1].replace('"', ''))
-                if available_networks == []:
+                if not available_networks:
                     raise ProcessError
             except ProcessError as e:
                 log(bad(e))
@@ -156,11 +156,11 @@ def main():
                 output = execute([['nmcli', '--terse', '--fields', 'name,type', 'connection', 'show'],
                 ['awk', '-F:', '/802-11-wireless/ {print $1}']])
                 connections = output.splitlines()
-                if connections == []:
+                if not connections:
                     raise ProcessError
                 available_networks = [execute([['nmcli', '--terse', 'connection', 'show', connection],
                 ['awk', '-F:', '/802-11-wireless.ssid/ {print $2}']]) for connection in connections]
-                if available_networks == []:
+                if not available_networks:
                     raise ProcessError
             except ProcessError as e:
                 log(bad(e))
@@ -180,7 +180,7 @@ def main():
             }
         ]
         answer = questionary.prompt(questions)
-        if answer == {}:
+        if not answer:
             raise KeyboardInterrupt
         wifi_name = answer['network']
         if system == 'Linux':
@@ -193,21 +193,21 @@ def main():
                 for line in output.splitlines():
                     if line.startswith('    SSID'):
                        wifi_name = line.split(':')[1].lstrip()
-                if wifi_name == None:
+                if wifi_name is None:
                     raise ProcessError
             elif system == 'Darwin':
                 output = execute(['/System/Library/PrivateFrameworks/Apple80211.framework/Versions/Current/Resources/airport', '-I'])
                 for line in output.splitlines():
                     if line.startswith('           SSID'):
                        wifi_name = line.split(':')[1].lstrip()
-                if wifi_name == None:
+                if wifi_name is None:
                     raise ProcessError
             else:
                 wifi_name = execute([['nmcli', '--terse', '--fields', 'active,ssid', 'device', 'wifi'],
                 ['awk', '-F:', '/yes/ {print $2}']])
                 if wifi_name == '':
                     raise ProcessError
-                connection_name = execute([['nmcli', '--terse', '-fields', 'name,type', 'connection', 'show', '--active'],
+                connection_name = execute([['nmcli', '--terse', '--fields', 'name,type', 'connection', 'show', '--active'],
                 ['awk', '-F:', '/802-11-wireless/ {print $1}']])
                 if connection_name == '':
                     raise ProcessError
@@ -221,7 +221,7 @@ def main():
         log(run('Retrieving the password for ' + green(wifi_name) + ' Wi-Fi'))
 
     wifi_password = ''
-    if args.password != None:
+    if args.password is not None:
         wifi_password = args.password
     else:
         try:
@@ -238,7 +238,7 @@ def main():
                     output = execute([['nmcli', '--terse', '--fields', 'name,type', 'connection', 'show'],
                     ['awk', '-F:', '/802-11-wireless/ {print $1}']])
                     connections = output.splitlines()
-                    if connections == []:
+                    if not connections:
                         raise ProcessError
                     if args.list:
                         connection_name = connections[available_networks.index(wifi_name)]
@@ -251,7 +251,7 @@ def main():
                                 break
                 wifi_password = execute([['nmcli', '--terse', '--fields', '802-11-wireless-security.psk', '--show-secrets', 'connection', 'show', 'id', connection_name],
                 ['awk', '-F:', '{print $2}']])
-            if wifi_password == None:
+            if wifi_password is None:
                 raise ProcessError
         except (ProcessError, IOError) as e:
             log(bad(e))
@@ -268,7 +268,7 @@ def main():
         data = create_QR_string(ssid = wifi_name, password = wifi_password)
     else:
         log(info('No password needed for this network.'))
-        data = create_QR_string(ssid = wifi_name)
+        data = create_QR_string(ssid = wifi_name, security = 'nopass')
 
     qr = create_QR_object(data)
 

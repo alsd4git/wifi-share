@@ -4,24 +4,33 @@
     Scan it with your phone and connect automatically.</p>
     <p align="center">
         <a href="/LICENSE"><img alt="Software License" src="https://img.shields.io/badge/license-MIT-brightgreen.svg"></a>
-        <img alt="Python version" src="https://img.shields.io/badge/python-2 %7C 3-blue.svg">
+        <img alt="Python version" src="https://img.shields.io/badge/python-3.12%2B-blue.svg">
         <img alt="Platform support" src="https://img.shields.io/badge/platform-linux%20|%20windows%20|%20macos-lightgrey.svg">
     </p>
 </p>
 
 
-## Installation (using make)
+## Installation
+### With `uv` (recommended)
+```bash
+uv sync
+uv run wifi-share
+```
+`uv sync` reads `pyproject.toml`, creates a local environment automatically, and installs the project's locked dependencies.
+`uv run wifi-share` uses the console entrypoint defined in the project, so you can start the tool without remembering the Python filename.
+
+### With `make`
 ```
 git clone https://github.com/thanosgn/wifi-share.git
 cd wifi-share
 sudo make install
 ```
 You can uninstall at any time using `make uninstall`.
-If you don't have `make` you can always use `pip install -r requirements.txt` to install the necessary requirements.
+If you don't have `make`, you can always use `uv sync` or `pip install -e .` to install the necessary requirements.
 
-Obviously `python` and `pip` are required.
+Obviously `python3` and `pip3` are required.
 
-The script is compatible with both `python2` and `python3`
+The project targets modern Python 3 releases and is packaged so it can be installed with `uv`, `pip`, or the provided Makefile.
 
 On Windows you can use `cmd` to install and use the script.
 
@@ -30,7 +39,13 @@ On Windows you can use `cmd` to install and use the script.
 wifi-share
 ```
 
-If you did not use the provided Makefile, and you don't `wifi-share` in your executable path, then using `python wifi-share.py` will do just fine.
+If you did not use the provided Makefile or `uv`, and you don't have `wifi-share` in your executable path, then using `python3 wifi-share.py` will do just fine.
+
+If you want to understand what `uv` is doing under the hood:
+* it reads dependencies from `pyproject.toml`
+* it creates a local `.venv` folder in the project
+* it installs the exact versions listed in the project metadata
+* it exposes the `wifi-share` command from the `[project.scripts]` entrypoint
 
 See also the [_Notes_](#notes) section below.
 
@@ -73,7 +88,7 @@ optional arguments:
 
 ## Notes
 
-On MacOS the `airport` utility is used to access saved Wi-Fi information. While you do not need `sudo` to run the script, you will get a popup prompt asking for your username and password. This is needed in MacOS in order to read information from the keychain.
+On macOS the `airport` utility is used to access saved Wi-Fi information. You do not need `sudo` to run the script, but you will get a popup prompt asking for your username and password. This is required on macOS to read information from the keychain.
 <p align="center">
   <img src="https://thanosgn.github.io/assets/macos-prompt.png">
 </p>

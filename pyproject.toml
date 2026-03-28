@@ -1,0 +1,22 @@
+[build-system]
+requires = ["setuptools>=69", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "wifi-share"
+version = "0.1.0"
+description = "Instantly share your Wi-Fi connection using a QR code."
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+  "qrcode==8.2",
+  "huepy==1.2.1",
+  "Pillow==12.1.1",
+  "questionary==2.1.1",
+]
+
+[project.scripts]
+wifi-share = "wifi_share:main"
+
+[tool.setuptools]
+py-modules = ["wifi_share"]
