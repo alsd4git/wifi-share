@@ -39,13 +39,14 @@ On Windows you can use `cmd` to install and use the script.
 wifi-share
 ```
 
-If you did not use the provided Makefile or `uv`, and you don't have `wifi-share` in your executable path, then using `python3 wifi-share.py` will do just fine.
+If you did not use the provided Makefile or `uv`, and you don't have `wifi-share` in your executable path, then using `python3 wifi_share.py` will do just fine.
 
 If you want to understand what `uv` is doing under the hood:
 * it reads dependencies from `pyproject.toml`
 * it creates a local `.venv` folder in the project
 * it installs the exact versions listed in the project metadata
 * it exposes the `wifi-share` command from the `[project.scripts]` entrypoint
+* the canonical source lives in `wifi_share.py`
 
 See also the [_Notes_](#notes) section below.
 
@@ -88,7 +89,7 @@ optional arguments:
 
 ## Notes
 
-On macOS the `airport` utility is used to access saved Wi-Fi information. You do not need `sudo` to run the script, but you will get a popup prompt asking for your username and password. This is required on macOS to read information from the keychain.
+On macOS the script first tries modern Wi-Fi APIs and system tools to detect the current SSID, then falls back to the saved-network picker if macOS does not expose the active network name. It uses `security` to read saved credentials from Keychain. You do not need `sudo` to run it, but macOS may prompt for your username and password the first time it needs keychain access.
 <p align="center">
   <img src="https://thanosgn.github.io/assets/macos-prompt.png">
 </p>
