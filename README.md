@@ -1,95 +1,123 @@
 <p align="center">
-    <img src="https://github.com/thanosgn/wifi-share/blob/master/logos/LOGOTYPE_H.svg" height="50%" width="50%">
-    <p align="center">Instantly share your WIFI connection using a QR code. <br>
-    Scan it with your phone and connect automatically.</p>
-    <p align="center">
-        <a href="/LICENSE"><img alt="Software License" src="https://img.shields.io/badge/license-MIT-brightgreen.svg"></a>
-        <img alt="Python version" src="https://img.shields.io/badge/python-3.12%2B-blue.svg">
-        <img alt="Platform support" src="https://img.shields.io/badge/platform-linux%20|%20windows%20|%20macos-lightgrey.svg">
-    </p>
+  <img src="https://github.com/thanosgn/wifi-share/blob/master/logos/LOGOTYPE_H.svg" height="50%" width="50%" alt="Wi-Fi Share">
+  <br>
+  Instantly share a Wi-Fi connection using a QR code.<br>
+  Scan it with a phone to connect automatically.
 </p>
 
+<p align="center">
+  <a href="/LICENSE"><img alt="MIT License" src="https://img.shields.io/badge/license-MIT-brightgreen.svg"></a>
+  <img alt="Python 3.10 or newer" src="https://img.shields.io/badge/python-3.10%2B-blue.svg">
+  <img alt="Linux, Windows and macOS" src="https://img.shields.io/badge/platform-linux%20%7C%20windows%20%7C%20macos-lightgrey.svg">
+</p>
+
+## Requirements
+
+- Python 3.10 or newer.
+- Linux: NetworkManager with `nmcli` available on `PATH`.
+- macOS: the built-in `networksetup`, `ipconfig`, `system_profiler`, and `security` tools. Swift is used only as a final SSID-detection fallback when available.
+- Windows: `netsh`; English and Italian system output are supported.
+
+Linux installations using only iwd, wpa_supplicant, or systemd-networkd are not currently supported.
 
 ## Installation
-### With `uv` (recommended)
+
+[`uv`](https://docs.astral.sh/uv/) is the recommended installer on all three platforms.
+
+### macOS and Linux
+
 ```bash
-uv sync
-uv run wifi-share
-```
-`uv sync` reads `pyproject.toml`, creates a local environment automatically, and installs the project's locked dependencies.
-`uv run wifi-share` uses the console entrypoint defined in the project, so you can start the tool without remembering the Python filename.
-
-### With `make`
-```
-git clone https://github.com/thanosgn/wifi-share.git
+git clone https://github.com/alsd4git/wifi-share.git
 cd wifi-share
-sudo make install
-```
-You can uninstall at any time using `make uninstall`.
-If you don't have `make`, you can always use `uv sync` or `pip install -e .` to install the necessary requirements.
-
-Obviously `python3` and `pip3` are required.
-
-The project targets modern Python 3 releases and is packaged so it can be installed with `uv`, `pip`, or the provided Makefile.
-
-On Windows you can use `cmd` to install and use the script.
-
-## Usage (default)
-```
+uv tool install .
 wifi-share
 ```
 
-If you did not use the provided Makefile or `uv`, and you don't have `wifi-share` in your executable path, then using `python3 wifi_share.py` will do just fine.
+### Windows PowerShell
 
-If you want to understand what `uv` is doing under the hood:
-* it reads dependencies from `pyproject.toml`
-* it creates a local `.venv` folder in the project
-* it installs the exact versions listed in the project metadata
-* it exposes the `wifi-share` command from the `[project.scripts]` entrypoint
-* the canonical source lives in `wifi_share.py`
+```powershell
+git clone https://github.com/alsd4git/wifi-share.git
+Set-Location wifi-share
+uv tool install .
+wifi-share
+```
 
-See also the [_Notes_](#notes) section below.
+The optional Makefile is a convenience wrapper around the same `uv tool` commands:
+
+```bash
+make install
+make uninstall
+```
+
+It does not require `sudo` and is not needed on Windows.
+
+For development, create the repository-local environment and run the entrypoint with:
+
+```bash
+uv sync --locked
+uv run wifi-share
+```
+
+`pyproject.toml` is the canonical dependency declaration; `uv.lock` provides reproducible development and CI installations.
+
+## Usage
+
+Running without arguments reads the active Wi-Fi connection and prints a QR code in the terminal:
+
+```bash
+wifi-share
+```
+
+Common examples:
+
+```bash
+# Select a saved network interactively
+wifi-share --list
+
+# Supply the SSID and password without reading system credentials
+wifi-share --ssid "Guest Wi-Fi" --password "secret"
+
+# Write an SVG using a safe filename derived from the SSID
+wifi-share --image
+
+# Write to an explicit PNG path
+wifi-share --image guest.png
+```
+
+Use `wifi-share --help` for the complete option list.
+
+`--verbose` includes the retrieved Wi-Fi password in terminal output. Use it only when exposing that credential in the current terminal is acceptable.
+
+## Platform notes
+
+### macOS
+
+macOS may hide the current SSID unless Location Services access is available. Wi-Fi Share tries the built-in network tools first, uses CoreWLAN through Swift only as a final fallback, and then offers the saved-network picker.
+
+Saved credentials are read from Keychain with `security`. macOS may show an authorization prompt the first time a password is requested.
+
+### Windows
+
+Profiles and credentials are read using `netsh`. English and Italian output, including open networks, are covered by automated tests. Other Windows display languages are not guaranteed.
+
+### Linux
+
+Wi-Fi Share reads the active NetworkManager connection directly and uses its profile to retrieve the SSID and saved PSK. If multiple saved profiles share an SSID, `--list` displays the associated profile name so the intended one can be selected.
+
+## Testing
+
+```bash
+uv run python -m unittest discover -s tests -v
+uv run python -m compileall -q wifi_share.py tests
+uv build
+```
+
+GitHub Actions runs these checks on Ubuntu, macOS, and Windows with every supported Python minor version. The hosted runners validate parsing, CLI behavior, and packaging with mocked system output; they cannot access real Wi-Fi hardware or saved credentials.
+
+Before a release, manually smoke-test each platform with an active network, `--list`, an open network, a saved password, SVG output, and PNG output.
 
 ## Example
+
 <p align="center">
-  <img src="https://thanosgn.github.io/assets/wifi-share-example.png">
-</p>
-
-## Options
-All the below arguments are optional.
-The default behavior is to generate a QR code on the terminal for the network you are currently connected.
-However, there are many options available if you want something besides the default scenario.
-```
-usage: wifi-share [-h] [-v] [-i [IMAGE]] [-s SSID] [-p PASSWORD] [-l]
-
- __          ___        ______ _      _____ _
- \ \        / (_)      |  ____(_)    / ____| |
-  \ \  /\  / / _ ______| |__   _    | (___ | |__   __ _ _ __ ___
-   \ \/  \/ / | |______|  __| | |    \___ \| '_ \ / _` | '__/ _ \
-    \  /\  /  | |      | |    | |    ____) | | | | (_| | | |  __/
-     \/  \/   |_|      |_|    |_|   |_____/|_| |_|\__,_|_|  \___|
-
-optional arguments:
-  -h, --help            show this help message and exit
-  -v, --verbose         Enable verbose output.
-  -i [IMAGE], --image [IMAGE]
-                        Specify a filename for the generated QR code image.
-                        (.png or .svg). Default: [WIFINAME].svg. If -i/--image
-                        argument is not provided the QR code will be displayed
-                        on the console.
-  -s SSID, --ssid SSID  Specify the SSID you want the password of. Default:
-                        the SSID of the network you are currently connected.
-  -p PASSWORD, --password PASSWORD
-                        Specify a desired password to be used instead of the
-                        stored one.
-  -l, --list            Display a list of stored Wi-Fi networks (SSIDs) to
-                        choose from.
-
-```
-
-## Notes
-
-On macOS the script first tries modern Wi-Fi APIs and system tools to detect the current SSID, then falls back to the saved-network picker if macOS does not expose the active network name. It uses `security` to read saved credentials from Keychain. You do not need `sudo` to run it, but macOS may prompt for your username and password the first time it needs keychain access.
-<p align="center">
-  <img src="https://thanosgn.github.io/assets/macos-prompt.png">
+  <img src="https://thanosgn.github.io/assets/wifi-share-example.png" alt="Wi-Fi Share terminal QR code example">
 </p>
