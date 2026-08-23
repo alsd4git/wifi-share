@@ -269,6 +269,10 @@ def mac_password(wifi_name):
 
 def linux_wifi_connections():
     output = execute(['nmcli', '-t', '-f', 'NAME,TYPE', 'connection', 'show'])
+    return linux_connection_names_from_output(output)
+
+
+def linux_connection_names_from_output(output):
     connections = []
     for line in output.splitlines():
         if not line:
@@ -279,6 +283,21 @@ def linux_wifi_connections():
     if not connections:
         raise ProcessError
     return connections
+
+
+def linux_active_wifi_connection():
+    output = execute([
+        'nmcli',
+        '-t',
+        '-f', 'NAME,TYPE',
+        'connection',
+        'show',
+        '--active',
+    ])
+    connections = linux_connection_names_from_output(output)
+    if len(connections) > 1:
+        raise ProcessError('Multiple active Wi-Fi connections found')
+    return connections[0]
 
 
 def linux_wifi_name_for_connection(connection_name):
@@ -323,7 +342,7 @@ def linux_password(connection_name):
     ])
     for line in output.splitlines():
         if line.startswith('802-11-wireless-security.psk:'):
-            return line.split(':', 1)[1]
+            return nmcli_unescape(line.split(':', 1)[1])
     return ''
 
 
@@ -339,7 +358,12 @@ def get_saved_networks(system):
 
 def choose_saved_wifi(system):
     available_networks, connections = get_saved_networks(system)
-    choices = [{"name": network, "value": network} for network in available_networks]
+    choices = []
+    for index, network in enumerate(available_networks):
+        label = network
+        if system == 'Linux' and available_networks.count(network) > 1:
+            label += ' (' + connections[index] + ')'
+        choices.append({"name": label, "value": index})
     questions = [
         {
             'type': 'list',
@@ -351,10 +375,11 @@ def choose_saved_wifi(system):
     answer = questionary.prompt(questions)
     if not answer:
         raise KeyboardInterrupt
-    wifi_name = answer['network']
+    selected_index = answer['network']
+    wifi_name = available_networks[selected_index]
     connection_name = ''
     if system == 'Linux':
-        connection_name = connections[available_networks.index(wifi_name)]
+        connection_name = connections[selected_index]
     return wifi_name, connection_name
 
 
@@ -365,15 +390,8 @@ def get_current_wifi_name(system):
         return mac_current_wifi_name(), ''
     if system != 'Linux':
         raise ProcessError('Unsupported operating system: ' + system)
-    wifi_name = linux_current_wifi_name()
-    connections = linux_wifi_connections()
-    connection_name = ''
-    for connection in connections:
-        if linux_wifi_name_for_connection(connection) == wifi_name:
-            connection_name = connection
-            break
-    if connection_name == '':
-        raise ProcessError
+    connection_name = linux_active_wifi_connection()
+    wifi_name = linux_wifi_name_for_connection(connection_name)
     return wifi_name, connection_name
 
 
@@ -386,10 +404,16 @@ def get_password(system, wifi_name, connection_name=''):
         raise ProcessError('Unsupported operating system: ' + system)
     if connection_name == '':
         connections = linux_wifi_connections()
+        matching_connections = []
         for connection in connections:
             if linux_wifi_name_for_connection(connection) == wifi_name:
-                connection_name = connection
-                break
+                matching_connections.append(connection)
+        if len(matching_connections) > 1:
+            raise ProcessError(
+                'Multiple saved Wi-Fi profiles match SSID: ' + wifi_name
+            )
+        if matching_connections:
+            connection_name = matching_connections[0]
     if connection_name == '':
         raise ProcessError
     return linux_password(connection_name)

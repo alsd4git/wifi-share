@@ -224,6 +224,37 @@ yes:Home\\:5G
         with patch.object(wifi_share, "execute", return_value=output):
             self.assertEqual(wifi_share.linux_current_wifi_name(), "Home:5G")
 
+    def test_active_connection_is_read_directly_from_network_manager(self):
+        output = "home-profile:802-11-wireless\n"
+
+        with patch.object(wifi_share, "execute", return_value=output) as execute:
+            self.assertEqual(
+                wifi_share.linux_active_wifi_connection(),
+                "home-profile",
+            )
+
+        execute.assert_called_once_with(
+            [
+                "nmcli",
+                "-t",
+                "-f",
+                "NAME,TYPE",
+                "connection",
+                "show",
+                "--active",
+            ]
+        )
+
+    def test_multiple_active_wifi_connections_are_rejected(self):
+        output = "first:802-11-wireless\nsecond:802-11-wireless\n"
+
+        with patch.object(wifi_share, "execute", return_value=output):
+            with self.assertRaisesRegex(
+                wifi_share.ProcessError,
+                "Multiple active Wi-Fi connections found",
+            ):
+                wifi_share.linux_active_wifi_connection()
+
     def test_saved_networks_keep_connection_mapping(self):
         with (
             patch.object(
@@ -248,10 +279,13 @@ yes:Home\\:5G
         )
 
     def test_password_uses_show_secrets_for_connection_id(self):
-        output = "802-11-wireless-security.psk:secret\n"
+        output = r"802-11-wireless-security.psk:secret\:with\\slashes" + "\n"
 
         with patch.object(wifi_share, "execute", return_value=output) as execute:
-            self.assertEqual(wifi_share.linux_password("home-profile"), "secret")
+            self.assertEqual(
+                wifi_share.linux_password("home-profile"),
+                r"secret:with\slashes",
+            )
 
         execute.assert_called_once_with(
             [
@@ -265,6 +299,76 @@ yes:Home\\:5G
                 "id",
                 "home-profile",
             ]
+        )
+
+    def test_current_wifi_uses_active_connection_without_ssid_search(self):
+        with (
+            patch.object(
+                wifi_share,
+                "linux_active_wifi_connection",
+                return_value="active-profile",
+            ),
+            patch.object(
+                wifi_share,
+                "linux_wifi_name_for_connection",
+                return_value="Home",
+            ),
+            patch.object(wifi_share, "linux_wifi_connections") as connections,
+        ):
+            self.assertEqual(
+                wifi_share.get_current_wifi_name("Linux"),
+                ("Home", "active-profile"),
+            )
+
+        connections.assert_not_called()
+
+    def test_password_rejects_ambiguous_profiles_for_same_ssid(self):
+        with (
+            patch.object(
+                wifi_share,
+                "linux_wifi_connections",
+                return_value=["first-profile", "second-profile"],
+            ),
+            patch.object(
+                wifi_share,
+                "linux_wifi_name_for_connection",
+                side_effect=["Home", "Home"],
+            ),
+        ):
+            with self.assertRaisesRegex(
+                wifi_share.ProcessError,
+                "Multiple saved Wi-Fi profiles match SSID: Home",
+            ):
+                wifi_share.get_password("Linux", "Home")
+
+    def test_saved_network_picker_distinguishes_duplicate_ssids(self):
+        with (
+            patch.object(
+                wifi_share,
+                "get_saved_networks",
+                return_value=(
+                    ["Home", "Home"],
+                    ["home-2g-profile", "home-5g-profile"],
+                ),
+            ),
+            patch.object(
+                wifi_share.questionary,
+                "prompt",
+                return_value={"network": 1},
+            ) as prompt,
+        ):
+            self.assertEqual(
+                wifi_share.choose_saved_wifi("Linux"),
+                ("Home", "home-5g-profile"),
+            )
+
+        choices = prompt.call_args.args[0][0]["choices"]
+        self.assertEqual(
+            choices,
+            [
+                {"name": "Home (home-2g-profile)", "value": 0},
+                {"name": "Home (home-5g-profile)", "value": 1},
+            ],
         )
 
 
