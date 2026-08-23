@@ -1,4 +1,0 @@
-qrcode==8.2
-huepy==1.2.1
-Pillow==12.1.1
-questionary==2.1.1

@@ -1,5 +1,5 @@
 [build-system]
-requires = ["setuptools>=69", "wheel"]
+requires = ["setuptools>=77", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
@@ -7,7 +7,22 @@ name = "wifi-share"
 version = "0.1.0"
 description = "Instantly share your Wi-Fi connection using a QR code."
 readme = "README.md"
-requires-python = ">=3.12"
+license = "MIT"
+requires-python = ">=3.10"
+keywords = ["wifi", "qr-code", "networking"]
+classifiers = [
+  "Development Status :: 4 - Beta",
+  "Environment :: Console",
+  "Operating System :: MacOS",
+  "Operating System :: Microsoft :: Windows",
+  "Operating System :: POSIX :: Linux",
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3.10",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+  "Programming Language :: Python :: 3.13",
+  "Topic :: System :: Networking",
+]
 dependencies = [
   "qrcode==8.2",
   "huepy==1.2.1",
@@ -17,6 +32,11 @@ dependencies = [
 
 [project.scripts]
 wifi-share = "wifi_share:main"
+
+[project.urls]
+Homepage = "https://github.com/alsd4git/wifi-share"
+Repository = "https://github.com/alsd4git/wifi-share.git"
+Issues = "https://github.com/alsd4git/wifi-share/issues"
 
 [tool.setuptools]
 py-modules = ["wifi_share"]
