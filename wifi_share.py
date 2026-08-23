@@ -9,6 +9,7 @@ import re
 import subprocess
 import sys
 from collections import OrderedDict
+from pathlib import Path
 
 import qrcode
 import qrcode.image.svg
@@ -31,6 +32,15 @@ WINDOWS_PASSWORD_LABELS = ("Key Content", "Contenuto chiave")
 MAC_WIFI_PORTS = {"Wi-Fi", "AirPort"}
 LINUX_WIFI_TYPE = "802-11-wireless"
 COMMAND_TIMEOUT_SECONDS = 30
+INVALID_FILENAME_CHARACTERS = re.compile(r'[<>:"/\\|?*\x00-\x1f]')
+WINDOWS_RESERVED_FILENAMES = {
+    'CON',
+    'PRN',
+    'AUX',
+    'NUL',
+    *(f'COM{number}' for number in range(1, 10)),
+    *(f'LPT{number}' for number in range(1, 10)),
+}
 
 
 def log(message):
@@ -99,6 +109,26 @@ def fix_ownership(path):  # Change the owner of the file to SUDO_UID
     gid = os.environ.get('SUDO_GID')
     if uid is not None and gid is not None:
         os.chown(path, int(uid), int(gid))
+
+
+def sanitize_filename(value):
+    filename = INVALID_FILENAME_CHARACTERS.sub('_', value).strip().rstrip('. ')
+    filename = filename[:180].rstrip('. ')
+    if not filename:
+        filename = 'wifi'
+    if filename.upper() in WINDOWS_RESERVED_FILENAMES:
+        filename = '_' + filename
+    return filename
+
+
+def default_image_filename(ssid):
+    stem = sanitize_filename(ssid)
+    candidate = Path(stem + '.svg')
+    counter = 2
+    while candidate.exists():
+        candidate = Path(stem + ' (' + str(counter) + ').svg')
+        counter += 1
+    return str(candidate)
 
 
 def create_QR_string(ssid=None, security='WPA', password=None):
@@ -519,12 +549,12 @@ def main():
         img = qrcode.make(data)
         if args.image is None:  # If user selected the -i/--image argument, but did not give any filename
             img = qrcode.make(data, image_factory=qrcode.image.svg.SvgPathFillImage)
-            filename = wifi_name + '.svg'
+            filename = default_image_filename(wifi_name)
         else:  # If user specified a filename with the -i/--image argument
-            if args.image.endswith('.svg'):
+            if args.image.lower().endswith('.svg'):
                 img = qrcode.make(data, image_factory=qrcode.image.svg.SvgPathFillImage)
                 filename = args.image
-            elif args.image.endswith('.png'):
+            elif args.image.lower().endswith('.png'):
                 filename = args.image
                 img = qr.make_image(fill_color="black", back_color="white")
             else:

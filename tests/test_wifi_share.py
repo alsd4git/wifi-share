@@ -1,5 +1,8 @@
+import os
 import subprocess
+import tempfile
 import unittest
+from pathlib import Path
 from unittest.mock import call, patch
 
 import wifi_share
@@ -72,6 +75,35 @@ class QrPayloadTests(unittest.TestCase):
             wifi_share.create_QR_string(ssid="Public Wi-Fi"),
             "WIFI:T:nopass;S:Public Wi-Fi;;",
         )
+
+
+class ImageFilenameTests(unittest.TestCase):
+    def test_filename_is_safe_on_all_supported_platforms(self):
+        self.assertEqual(
+            wifi_share.sanitize_filename('  Cafe:5G/guest?  '),
+            'Cafe_5G_guest_',
+        )
+        self.assertEqual(wifi_share.sanitize_filename('CON'), '_CON')
+        self.assertEqual(wifi_share.sanitize_filename('...'), 'wifi')
+        self.assertEqual(wifi_share.sanitize_filename('Rete italiana'), 'Rete italiana')
+
+    def test_default_filename_does_not_overwrite_existing_image(self):
+        with tempfile.TemporaryDirectory() as directory:
+            previous_directory = Path.cwd()
+            try:
+                os.chdir(directory)
+                Path("Home.svg").touch()
+                Path("Home (2).svg").touch()
+                filename = wifi_share.default_image_filename("Home")
+            finally:
+                os.chdir(previous_directory)
+
+        self.assertEqual(filename, "Home (3).svg")
+
+    def test_long_ssid_is_bounded_for_common_filesystems(self):
+        filename = wifi_share.sanitize_filename("a" * 300)
+
+        self.assertEqual(len(filename), 180)
 
 
 class WindowsBackendTests(unittest.TestCase):
