@@ -259,7 +259,7 @@ def linux_wifi_connections():
     for line in output.splitlines():
         if not line:
             continue
-        connection_name, connection_type = line.split(':', 1)
+        connection_name, connection_type = line.rsplit(':', 1)
         if connection_type == LINUX_WIFI_TYPE:
             connections.append(nmcli_unescape(connection_name))
     if not connections:
