@@ -156,6 +156,27 @@ Profili sull'interfaccia Wi-Fi:
                         expected,
                     )
 
+    def test_open_network_has_no_password_in_english_and_italian(self):
+        samples = (
+            "    Authentication         : Open\n",
+            "    Autenticazione         : Aperta\n",
+        )
+
+        for output in samples:
+            with self.subTest(output=output):
+                with patch.object(wifi_share, "execute", return_value=output):
+                    self.assertEqual(wifi_share.windows_password("Public"), "")
+
+    def test_disconnected_interface_has_no_current_ssid(self):
+        output = """\
+    Name                   : Wi-Fi
+    State                  : disconnected
+"""
+
+        with patch.object(wifi_share, "execute", return_value=output):
+            with self.assertRaises(wifi_share.ProcessError):
+                wifi_share.windows_current_wifi_name()
+
     def test_missing_supported_label_raises_process_error(self):
         with patch.object(wifi_share, "execute", return_value="No profiles\n"):
             with self.assertRaises(wifi_share.ProcessError):
@@ -198,23 +219,83 @@ Preferred networks on en0:
             patch.object(wifi_share, "mac_wifi_device", return_value="en0"),
             patch.object(
                 wifi_share,
-                "mac_current_wifi_name_corewlan",
+                "mac_current_wifi_name_networksetup",
                 side_effect=wifi_share.ProcessError("redacted"),
-            ) as corewlan,
+            ) as networksetup,
+            patch.object(
+                wifi_share,
+                "mac_current_wifi_name_ipconfig",
+                return_value="Home Wi-Fi",
+            ) as ipconfig,
+            patch.object(wifi_share, "mac_current_wifi_name_system_profiler") as profiler,
+            patch.object(wifi_share, "mac_current_wifi_name_corewlan") as corewlan,
+        ):
+            self.assertEqual(wifi_share.mac_current_wifi_name(), "Home Wi-Fi")
+
+        networksetup.assert_called_once_with("en0")
+        ipconfig.assert_called_once_with("en0")
+        profiler.assert_not_called()
+        corewlan.assert_not_called()
+
+    def test_corewlan_is_the_last_resolver(self):
+        failure = wifi_share.ProcessError("unavailable")
+        with (
+            patch.object(wifi_share, "mac_wifi_device", return_value="en0"),
             patch.object(
                 wifi_share,
                 "mac_current_wifi_name_networksetup",
+                side_effect=failure,
+            ),
+            patch.object(
+                wifi_share,
+                "mac_current_wifi_name_ipconfig",
+                side_effect=failure,
+            ),
+            patch.object(
+                wifi_share,
+                "mac_current_wifi_name_system_profiler",
+                side_effect=failure,
+            ),
+            patch.object(
+                wifi_share,
+                "mac_current_wifi_name_corewlan",
                 return_value="Home Wi-Fi",
-            ) as networksetup,
-            patch.object(wifi_share, "mac_current_wifi_name_ipconfig") as ipconfig,
-            patch.object(wifi_share, "mac_current_wifi_name_system_profiler") as profiler,
+            ) as corewlan,
         ):
             self.assertEqual(wifi_share.mac_current_wifi_name(), "Home Wi-Fi")
 
         corewlan.assert_called_once_with()
-        networksetup.assert_called_once_with("en0")
-        ipconfig.assert_not_called()
-        profiler.assert_not_called()
+
+    def test_missing_ssid_explains_location_permission(self):
+        failure = wifi_share.ProcessError("unavailable")
+        with (
+            patch.object(wifi_share, "mac_wifi_device", return_value="en0"),
+            patch.object(
+                wifi_share,
+                "mac_current_wifi_name_networksetup",
+                side_effect=failure,
+            ),
+            patch.object(
+                wifi_share,
+                "mac_current_wifi_name_ipconfig",
+                side_effect=failure,
+            ),
+            patch.object(
+                wifi_share,
+                "mac_current_wifi_name_system_profiler",
+                side_effect=failure,
+            ),
+            patch.object(
+                wifi_share,
+                "mac_current_wifi_name_corewlan",
+                side_effect=failure,
+            ),
+        ):
+            with self.assertRaisesRegex(
+                wifi_share.ProcessError,
+                "macOS may require Location Services permission",
+            ):
+                wifi_share.mac_current_wifi_name()
 
     def test_keychain_password_command_preserves_spaces(self):
         with patch.object(wifi_share, "execute", return_value="secret\n") as execute:

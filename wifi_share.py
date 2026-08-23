@@ -29,6 +29,8 @@ ascii_art = r'''
 
 WINDOWS_PROFILE_LABELS = ("All User Profile", "Tutti i profili utente")
 WINDOWS_PASSWORD_LABELS = ("Key Content", "Contenuto chiave")
+WINDOWS_AUTH_LABELS = ("Authentication", "Autenticazione")
+WINDOWS_OPEN_AUTH_VALUES = ("Open", "Aperta")
 MAC_WIFI_PORTS = {"Wi-Fi", "AirPort"}
 LINUX_WIFI_TYPE = "802-11-wireless"
 COMMAND_TIMEOUT_SECONDS = 30
@@ -176,12 +178,20 @@ def windows_current_wifi_name():
 
 def windows_password(wifi_name):
     output = execute(['netsh', 'wlan', 'show', 'profile', wifi_name, 'key=clear'])
-    labels = '|'.join(re.escape(label) for label in WINDOWS_PASSWORD_LABELS)
-    pattern = re.compile(r'^\s*(?:' + labels + r')\s*:\s*(.+?)\s*$')
+    password_labels = '|'.join(re.escape(label) for label in WINDOWS_PASSWORD_LABELS)
+    password_pattern = re.compile(r'^\s*(?:' + password_labels + r')\s*:\s*(.+?)\s*$')
+    auth_labels = '|'.join(re.escape(label) for label in WINDOWS_AUTH_LABELS)
+    auth_pattern = re.compile(r'^\s*(?:' + auth_labels + r')\s*:\s*(.+?)\s*$')
+    authentication = None
     for line in output.splitlines():
-        match = pattern.match(line)
-        if match:
-            return match.group(1)
+        password_match = password_pattern.match(line)
+        if password_match:
+            return password_match.group(1)
+        auth_match = auth_pattern.match(line)
+        if auth_match:
+            authentication = auth_match.group(1)
+    if authentication in WINDOWS_OPEN_AUTH_VALUES:
+        return ''
     raise ProcessError
 
 
@@ -275,16 +285,19 @@ def mac_saved_networks():
 def mac_current_wifi_name():
     device = mac_wifi_device()
     for resolver in (
-        mac_current_wifi_name_corewlan,
         lambda: mac_current_wifi_name_networksetup(device),
         lambda: mac_current_wifi_name_ipconfig(device),
         mac_current_wifi_name_system_profiler,
+        mac_current_wifi_name_corewlan,
     ):
         try:
             return resolver()
         except ProcessError:
             continue
-    raise ProcessError
+    raise ProcessError(
+        'Could not determine the current Wi-Fi network. '
+        'macOS may require Location Services permission.'
+    )
 
 
 def mac_password(wifi_name):
