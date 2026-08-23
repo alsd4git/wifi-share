@@ -1,7 +1,58 @@
+import subprocess
 import unittest
 from unittest.mock import call, patch
 
 import wifi_share
+
+
+class ProcessExecutionTests(unittest.TestCase):
+    def test_execute_sets_timeout_and_returns_stdout(self):
+        completed = subprocess.CompletedProcess(
+            args=["tool"],
+            returncode=0,
+            stdout="result\n",
+            stderr="",
+        )
+
+        with patch.object(wifi_share.subprocess, "run", return_value=completed) as run:
+            self.assertEqual(wifi_share.execute(["tool", "argument"]), "result\n")
+
+        self.assertEqual(run.call_args.kwargs["timeout"], wifi_share.COMMAND_TIMEOUT_SECONDS)
+        self.assertEqual(run.call_args.args[0], ["tool", "argument"])
+
+    def test_execute_reports_missing_command(self):
+        with patch.object(
+            wifi_share.subprocess,
+            "run",
+            side_effect=FileNotFoundError,
+        ):
+            with self.assertRaisesRegex(
+                wifi_share.ProcessError,
+                "Required command not found: nmcli",
+            ):
+                wifi_share.execute(["nmcli", "connection", "show"])
+
+    def test_execute_reports_timeout(self):
+        timeout = subprocess.TimeoutExpired(cmd=["slow-tool"], timeout=30)
+
+        with patch.object(wifi_share.subprocess, "run", side_effect=timeout):
+            with self.assertRaisesRegex(
+                wifi_share.ProcessError,
+                "Command timed out after 30 seconds: slow-tool",
+            ):
+                wifi_share.execute(["slow-tool"])
+
+    def test_execute_reports_other_os_errors(self):
+        with patch.object(
+            wifi_share.subprocess,
+            "run",
+            side_effect=PermissionError("denied"),
+        ):
+            with self.assertRaisesRegex(
+                wifi_share.ProcessError,
+                "Could not run protected-tool: denied",
+            ):
+                wifi_share.execute(["protected-tool"])
 
 
 class QrPayloadTests(unittest.TestCase):
@@ -240,6 +291,21 @@ class BackendDispatchTests(unittest.TestCase):
                 wifi_share.get_saved_networks("Linux"),
                 (["Linux"], ["linux-profile"]),
             )
+
+    def test_unknown_system_is_not_treated_as_linux(self):
+        operations = (
+            lambda: wifi_share.get_saved_networks("FreeBSD"),
+            lambda: wifi_share.get_current_wifi_name("FreeBSD"),
+            lambda: wifi_share.get_password("FreeBSD", "Home"),
+        )
+
+        for operation in operations:
+            with self.subTest(operation=operation):
+                with self.assertRaisesRegex(
+                    wifi_share.ProcessError,
+                    "Unsupported operating system: FreeBSD",
+                ):
+                    operation()
 
 
 if __name__ == "__main__":

@@ -30,6 +30,7 @@ WINDOWS_PROFILE_LABELS = ("All User Profile", "Tutti i profili utente")
 WINDOWS_PASSWORD_LABELS = ("Key Content", "Contenuto chiave")
 MAC_WIFI_PORTS = {"Wi-Fi", "AirPort"}
 LINUX_WIFI_TYPE = "802-11-wireless"
+COMMAND_TIMEOUT_SECONDS = 30
 
 
 def log(message):
@@ -48,16 +49,29 @@ class ProcessError(Exception):
 # Execute a command and return its stdout.
 def execute(command):
     log(run(bold('Running: ') + ' '.join(command)))
-    completed = subprocess.run(
-        command,
-        stdin=subprocess.DEVNULL,
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
-        text=True,
-        encoding=locale.getpreferredencoding(False),
-        errors='replace',
-        check=False,
-    )
+    try:
+        completed = subprocess.run(
+            command,
+            stdin=subprocess.DEVNULL,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            text=True,
+            encoding=locale.getpreferredencoding(False),
+            errors='replace',
+            check=False,
+            timeout=COMMAND_TIMEOUT_SECONDS,
+        )
+    except FileNotFoundError as error:
+        raise ProcessError('Required command not found: ' + command[0]) from error
+    except subprocess.TimeoutExpired as error:
+        raise ProcessError(
+            'Command timed out after '
+            + str(COMMAND_TIMEOUT_SECONDS)
+            + ' seconds: '
+            + command[0]
+        ) from error
+    except OSError as error:
+        raise ProcessError('Could not run ' + command[0] + ': ' + str(error)) from error
     if completed.returncode != 0:
         message = completed.stderr.strip() or completed.stdout.strip()
         raise ProcessError(message)
@@ -318,7 +332,9 @@ def get_saved_networks(system):
         return windows_saved_networks(), []
     if system == 'Darwin':
         return mac_saved_networks(), []
-    return linux_saved_networks()
+    if system == 'Linux':
+        return linux_saved_networks()
+    raise ProcessError('Unsupported operating system: ' + system)
 
 
 def choose_saved_wifi(system):
@@ -347,6 +363,8 @@ def get_current_wifi_name(system):
         return windows_current_wifi_name(), ''
     if system == 'Darwin':
         return mac_current_wifi_name(), ''
+    if system != 'Linux':
+        raise ProcessError('Unsupported operating system: ' + system)
     wifi_name = linux_current_wifi_name()
     connections = linux_wifi_connections()
     connection_name = ''
@@ -364,6 +382,8 @@ def get_password(system, wifi_name, connection_name=''):
         return windows_password(wifi_name)
     if system == 'Darwin':
         return mac_password(wifi_name)
+    if system != 'Linux':
+        raise ProcessError('Unsupported operating system: ' + system)
     if connection_name == '':
         connections = linux_wifi_connections()
         for connection in connections:
