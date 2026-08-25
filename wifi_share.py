@@ -18,14 +18,14 @@ from huepy import *
 
 verbose = True
 
-ascii_art = r'''
+ascii_art = r"""
  __          ___        ______ _      _____ _
  \ \        / (_)      |  ____(_)    / ____| |
   \ \  /\  / / _ ______| |__   _    | (___ | |__   __ _ _ __ ___
    \ \/  \/ / | |______|  __| | |    \___ \| '_ \ / _` | '__/ _ \\
     \  /\  /  | |      | |    | |    ____) | | | | (_| | | |  __/
      \/  \/   |_|      |_|    |_|   |_____/|_| |_|\__,_|_|  \___|
-'''
+"""
 
 WINDOWS_PROFILE_LABELS = ("All User Profile", "Tutti i profili utente")
 WINDOWS_PASSWORD_LABELS = ("Key Content", "Contenuto chiave")
@@ -36,12 +36,12 @@ LINUX_WIFI_TYPE = "802-11-wireless"
 COMMAND_TIMEOUT_SECONDS = 30
 INVALID_FILENAME_CHARACTERS = re.compile(r'[<>:"/\\|?*\x00-\x1f]')
 WINDOWS_RESERVED_FILENAMES = {
-    'CON',
-    'PRN',
-    'AUX',
-    'NUL',
-    *(f'COM{number}' for number in range(1, 10)),
-    *(f'LPT{number}' for number in range(1, 10)),
+    "CON",
+    "PRN",
+    "AUX",
+    "NUL",
+    *(f"COM{number}" for number in range(1, 10)),
+    *(f"LPT{number}" for number in range(1, 10)),
 }
 
 
@@ -51,7 +51,7 @@ def log(message):
 
 
 class ProcessError(Exception):
-    def __init__(self, message=''):
+    def __init__(self, message=""):
         self.message = message
 
     def __str__(self):
@@ -60,7 +60,7 @@ class ProcessError(Exception):
 
 # Execute a command and return its stdout.
 def execute(command):
-    log(run(bold('Running: ') + ' '.join(command)))
+    log(run(bold("Running: ") + " ".join(command)))
     try:
         completed = subprocess.run(
             command,
@@ -69,21 +69,18 @@ def execute(command):
             stderr=subprocess.PIPE,
             text=True,
             encoding=locale.getpreferredencoding(False),
-            errors='replace',
+            errors="replace",
             check=False,
             timeout=COMMAND_TIMEOUT_SECONDS,
         )
     except FileNotFoundError as error:
-        raise ProcessError('Required command not found: ' + command[0]) from error
+        raise ProcessError("Required command not found: " + command[0]) from error
     except subprocess.TimeoutExpired as error:
         raise ProcessError(
-            'Command timed out after '
-            + str(COMMAND_TIMEOUT_SECONDS)
-            + ' seconds: '
-            + command[0]
+            "Command timed out after " + str(COMMAND_TIMEOUT_SECONDS) + " seconds: " + command[0]
         ) from error
     except OSError as error:
-        raise ProcessError('Could not run ' + command[0] + ': ' + str(error)) from error
+        raise ProcessError("Could not run " + command[0] + ": " + str(error)) from error
     if completed.returncode != 0:
         message = completed.stderr.strip() or completed.stdout.strip()
         raise ProcessError(message)
@@ -91,11 +88,9 @@ def execute(command):
 
 
 def escape(input_string):
-    translations = OrderedDict([('\\', '\\\\'),
-                                (':', '\\:'),
-                                (';', '\\;'),
-                                (',', '\\,'),
-                                ('"', '\\"')])
+    translations = OrderedDict(
+        [("\\", "\\\\"), (":", "\\:"), (";", "\\;"), (",", "\\,"), ('"', '\\"')]
+    )
     escaped = input_string
     for k, v in translations.items():
         escaped = escaped.replace(k, v)
@@ -103,42 +98,42 @@ def escape(input_string):
 
 
 def nmcli_unescape(value):
-    return re.sub(r'\\(.)', r'\1', value)
+    return re.sub(r"\\(.)", r"\1", value)
 
 
 def fix_ownership(path):  # Change the owner of the file to SUDO_UID
-    uid = os.environ.get('SUDO_UID')
-    gid = os.environ.get('SUDO_GID')
+    uid = os.environ.get("SUDO_UID")
+    gid = os.environ.get("SUDO_GID")
     if uid is not None and gid is not None:
         os.chown(path, int(uid), int(gid))
 
 
 def sanitize_filename(value):
-    filename = INVALID_FILENAME_CHARACTERS.sub('_', value).strip().rstrip('. ')
-    filename = filename[:180].rstrip('. ')
+    filename = INVALID_FILENAME_CHARACTERS.sub("_", value).strip().rstrip(". ")
+    filename = filename[:180].rstrip(". ")
     if not filename:
-        filename = 'wifi'
+        filename = "wifi"
     if filename.upper() in WINDOWS_RESERVED_FILENAMES:
-        filename = '_' + filename
+        filename = "_" + filename
     return filename
 
 
 def default_image_filename(ssid):
     stem = sanitize_filename(ssid)
-    candidate = Path(stem + '.svg')
+    candidate = Path(stem + ".svg")
     counter = 2
     while candidate.exists():
-        candidate = Path(stem + ' (' + str(counter) + ').svg')
+        candidate = Path(stem + " (" + str(counter) + ").svg")
         counter += 1
     return str(candidate)
 
 
-def create_QR_string(ssid=None, security='WPA', password=None):
+def create_QR_string(ssid=None, security="WPA", password=None):
     if ssid is not None:
         if password is not None:
-            return 'WIFI:T:' + security + ';S:' + escape(ssid) + ';P:' + escape(password) + ';;'
-        return 'WIFI:T:nopass;S:' + escape(ssid) + ';;'
-    return ''
+            return "WIFI:T:" + security + ";S:" + escape(ssid) + ";P:" + escape(password) + ";;"
+        return "WIFI:T:nopass;S:" + escape(ssid) + ";;"
+    return ""
 
 
 def create_QR_object(data):
@@ -153,10 +148,10 @@ def create_QR_object(data):
 
 
 def windows_saved_networks():
-    output = execute(['netsh', 'wlan', 'show', 'profiles'])
+    output = execute(["netsh", "wlan", "show", "profiles"])
     available_networks = []
-    labels = '|'.join(re.escape(label) for label in WINDOWS_PROFILE_LABELS)
-    pattern = re.compile(r'^\s*(?:' + labels + r')\s*:\s*(.+?)\s*$')
+    labels = "|".join(re.escape(label) for label in WINDOWS_PROFILE_LABELS)
+    pattern = re.compile(r"^\s*(?:" + labels + r")\s*:\s*(.+?)\s*$")
     for line in output.splitlines():
         match = pattern.match(line)
         if match:
@@ -167,8 +162,8 @@ def windows_saved_networks():
 
 
 def windows_current_wifi_name():
-    output = execute(['netsh', 'wlan', 'show', 'interfaces'])
-    pattern = re.compile(r'^\s*SSID\s*:\s*(.+?)\s*$')
+    output = execute(["netsh", "wlan", "show", "interfaces"])
+    pattern = re.compile(r"^\s*SSID\s*:\s*(.+?)\s*$")
     for line in output.splitlines():
         match = pattern.match(line)
         if match:
@@ -177,11 +172,11 @@ def windows_current_wifi_name():
 
 
 def windows_password(wifi_name):
-    output = execute(['netsh', 'wlan', 'show', 'profile', wifi_name, 'key=clear'])
-    password_labels = '|'.join(re.escape(label) for label in WINDOWS_PASSWORD_LABELS)
-    password_pattern = re.compile(r'^\s*(?:' + password_labels + r')\s*:\s*(.+?)\s*$')
-    auth_labels = '|'.join(re.escape(label) for label in WINDOWS_AUTH_LABELS)
-    auth_pattern = re.compile(r'^\s*(?:' + auth_labels + r')\s*:\s*(.+?)\s*$')
+    output = execute(["netsh", "wlan", "show", "profile", wifi_name, "key=clear"])
+    password_labels = "|".join(re.escape(label) for label in WINDOWS_PASSWORD_LABELS)
+    password_pattern = re.compile(r"^\s*(?:" + password_labels + r")\s*:\s*(.+?)\s*$")
+    auth_labels = "|".join(re.escape(label) for label in WINDOWS_AUTH_LABELS)
+    auth_pattern = re.compile(r"^\s*(?:" + auth_labels + r")\s*:\s*(.+?)\s*$")
     authentication = None
     for line in output.splitlines():
         password_match = password_pattern.match(line)
@@ -191,19 +186,19 @@ def windows_password(wifi_name):
         if auth_match:
             authentication = auth_match.group(1)
     if authentication in WINDOWS_OPEN_AUTH_VALUES:
-        return ''
+        return ""
     raise ProcessError
 
 
 def mac_wifi_device():
-    output = execute(['networksetup', '-listallhardwareports'])
+    output = execute(["networksetup", "-listallhardwareports"])
     port = None
     device = None
     for line in output.splitlines():
-        if line.startswith('Hardware Port:'):
-            port = line.split(':', 1)[1].strip()
-        elif line.startswith('Device:') and port in MAC_WIFI_PORTS:
-            device = line.split(':', 1)[1].strip()
+        if line.startswith("Hardware Port:"):
+            port = line.split(":", 1)[1].strip()
+        elif line.startswith("Device:") and port in MAC_WIFI_PORTS:
+            device = line.split(":", 1)[1].strip()
             break
     if device is None:
         raise ProcessError
@@ -211,67 +206,69 @@ def mac_wifi_device():
 
 
 def mac_current_wifi_name_corewlan():
-    output = execute([
-        'swift',
-        '-e',
-        'import CoreWLAN; '
-        'let client = CWWiFiClient.sharedWiFiClient(); '
-        'if let iface = client.interface(), let ssid = iface.ssid() { print(ssid) }',
-    ]).strip()
-    if output and output not in {'Wi-Fi', 'WLAN', '<redacted>'}:
+    output = execute(
+        [
+            "swift",
+            "-e",
+            "import CoreWLAN; "
+            "let client = CWWiFiClient.sharedWiFiClient(); "
+            "if let iface = client.interface(), let ssid = iface.ssid() { print(ssid) }",
+        ]
+    ).strip()
+    if output and output not in {"Wi-Fi", "WLAN", "<redacted>"}:
         return output
     raise ProcessError
 
 
 def mac_current_wifi_name_networksetup(device):
-    output = execute(['networksetup', '-getairportnetwork', device]).strip()
-    pattern = re.compile(r'^(?:Current Wi-Fi Network|Current AirPort Network):\s*(.+?)\s*$')
+    output = execute(["networksetup", "-getairportnetwork", device]).strip()
+    pattern = re.compile(r"^(?:Current Wi-Fi Network|Current AirPort Network):\s*(.+?)\s*$")
     for line in output.splitlines():
         match = pattern.match(line)
         if not match:
             continue
         wifi_name = match.group(1).strip()
-        if wifi_name and wifi_name not in {'Wi-Fi', 'WLAN', '<redacted>'}:
+        if wifi_name and wifi_name not in {"Wi-Fi", "WLAN", "<redacted>"}:
             return wifi_name
     raise ProcessError
 
 
 def mac_current_wifi_name_ipconfig(device):
-    output = execute(['ipconfig', 'getsummary', device])
-    pattern = re.compile(r'^\s*SSID\s*:\s*(.+?)\s*$')
+    output = execute(["ipconfig", "getsummary", device])
+    pattern = re.compile(r"^\s*SSID\s*:\s*(.+?)\s*$")
     for line in output.splitlines():
         match = pattern.match(line)
         if not match:
             continue
         wifi_name = match.group(1).strip()
-        if wifi_name and wifi_name not in {'Wi-Fi', 'WLAN', '<redacted>'}:
+        if wifi_name and wifi_name not in {"Wi-Fi", "WLAN", "<redacted>"}:
             return wifi_name
     raise ProcessError
 
 
 def mac_current_wifi_name_system_profiler():
-    output = execute(['system_profiler', 'SPAirPortDataType'])
+    output = execute(["system_profiler", "SPAirPortDataType"])
     in_current_block = False
     for line in output.splitlines():
         stripped = line.strip()
-        if stripped == 'Current Network Information:':
+        if stripped == "Current Network Information:":
             in_current_block = True
             continue
         if not in_current_block:
             continue
-        if stripped == '' or not line.startswith('            '):
+        if stripped == "" or not line.startswith("            "):
             break
-        if not stripped.endswith(':'):
+        if not stripped.endswith(":"):
             continue
         wifi_name = stripped[:-1].strip()
-        if wifi_name and wifi_name not in {'Wi-Fi', 'WLAN', '<redacted>'}:
+        if wifi_name and wifi_name not in {"Wi-Fi", "WLAN", "<redacted>"}:
             return wifi_name
     raise ProcessError
 
 
 def mac_saved_networks():
     device = mac_wifi_device()
-    output = execute(['networksetup', '-listpreferredwirelessnetworks', device])
+    output = execute(["networksetup", "-listpreferredwirelessnetworks", device])
     available_networks = []
     for line in output.splitlines()[1:]:
         network = line.strip()
@@ -295,23 +292,27 @@ def mac_current_wifi_name():
         except ProcessError:
             continue
     raise ProcessError(
-        'Could not determine the current Wi-Fi network. '
-        'macOS may require Location Services permission.'
+        "Could not determine the current Wi-Fi network. "
+        "macOS may require Location Services permission."
     )
 
 
 def mac_password(wifi_name):
-    return execute([
-        'security',
-        'find-generic-password',
-        '-D', 'AirPort network password',
-        '-a', wifi_name,
-        '-w',
-    ]).rstrip('\r\n')
+    return execute(
+        [
+            "security",
+            "find-generic-password",
+            "-D",
+            "AirPort network password",
+            "-a",
+            wifi_name,
+            "-w",
+        ]
+    ).rstrip("\r\n")
 
 
 def linux_wifi_connections():
-    output = execute(['nmcli', '-t', '-f', 'NAME,TYPE', 'connection', 'show'])
+    output = execute(["nmcli", "-t", "-f", "NAME,TYPE", "connection", "show"])
     return linux_connection_names_from_output(output)
 
 
@@ -320,7 +321,7 @@ def linux_connection_names_from_output(output):
     for line in output.splitlines():
         if not line:
             continue
-        connection_name, connection_type = line.rsplit(':', 1)
+        connection_name, connection_type = line.rsplit(":", 1)
         if connection_type == LINUX_WIFI_TYPE:
             connections.append(nmcli_unescape(connection_name))
     if not connections:
@@ -329,25 +330,30 @@ def linux_connection_names_from_output(output):
 
 
 def linux_active_wifi_connection():
-    output = execute([
-        'nmcli',
-        '-t',
-        '-f', 'NAME,TYPE',
-        'connection',
-        'show',
-        '--active',
-    ])
+    output = execute(
+        [
+            "nmcli",
+            "-t",
+            "-f",
+            "NAME,TYPE",
+            "connection",
+            "show",
+            "--active",
+        ]
+    )
     connections = linux_connection_names_from_output(output)
     if len(connections) > 1:
-        raise ProcessError('Multiple active Wi-Fi connections found')
+        raise ProcessError("Multiple active Wi-Fi connections found")
     return connections[0]
 
 
 def linux_wifi_name_for_connection(connection_name):
-    output = execute(['nmcli', '-t', '-f', '802-11-wireless.ssid', 'connection', 'show', connection_name])
+    output = execute(
+        ["nmcli", "-t", "-f", "802-11-wireless.ssid", "connection", "show", connection_name]
+    )
     for line in output.splitlines():
-        if line.startswith('802-11-wireless.ssid:'):
-            ssid = nmcli_unescape(line.split(':', 1)[1])
+        if line.startswith("802-11-wireless.ssid:"):
+            ssid = nmcli_unescape(line.split(":", 1)[1])
             if ssid:
                 return ssid
     raise ProcessError
@@ -360,12 +366,12 @@ def linux_saved_networks():
 
 
 def linux_current_wifi_name():
-    output = execute(['nmcli', '-t', '-f', 'ACTIVE,SSID', 'device', 'wifi'])
+    output = execute(["nmcli", "-t", "-f", "ACTIVE,SSID", "device", "wifi"])
     for line in output.splitlines():
         if not line:
             continue
-        active, ssid = line.split(':', 1)
-        if active == 'yes':
+        active, ssid = line.split(":", 1)
+        if active == "yes":
             wifi_name = nmcli_unescape(ssid)
             if wifi_name:
                 return wifi_name
@@ -373,30 +379,33 @@ def linux_current_wifi_name():
 
 
 def linux_password(connection_name):
-    output = execute([
-        'nmcli',
-        '-t',
-        '-f', '802-11-wireless-security.psk',
-        '--show-secrets',
-        'connection',
-        'show',
-        'id',
-        connection_name,
-    ])
+    output = execute(
+        [
+            "nmcli",
+            "-t",
+            "-f",
+            "802-11-wireless-security.psk",
+            "--show-secrets",
+            "connection",
+            "show",
+            "id",
+            connection_name,
+        ]
+    )
     for line in output.splitlines():
-        if line.startswith('802-11-wireless-security.psk:'):
-            return nmcli_unescape(line.split(':', 1)[1])
-    return ''
+        if line.startswith("802-11-wireless-security.psk:"):
+            return nmcli_unescape(line.split(":", 1)[1])
+    return ""
 
 
 def get_saved_networks(system):
-    if system == 'Windows':
+    if system == "Windows":
         return windows_saved_networks(), []
-    if system == 'Darwin':
+    if system == "Darwin":
         return mac_saved_networks(), []
-    if system == 'Linux':
+    if system == "Linux":
         return linux_saved_networks()
-    raise ProcessError('Unsupported operating system: ' + system)
+    raise ProcessError("Unsupported operating system: " + system)
 
 
 def choose_saved_wifi(system):
@@ -404,95 +413,102 @@ def choose_saved_wifi(system):
     choices = []
     for index, network in enumerate(available_networks):
         label = network
-        if system == 'Linux' and available_networks.count(network) > 1:
-            label += ' (' + connections[index] + ')'
+        if system == "Linux" and available_networks.count(network) > 1:
+            label += " (" + connections[index] + ")"
         choices.append({"name": label, "value": index})
     questions = [
         {
-            'type': 'list',
-            'name': 'network',
-            'message': 'SSID:',
-            'choices': choices,
+            "type": "list",
+            "name": "network",
+            "message": "SSID:",
+            "choices": choices,
         }
     ]
     answer = questionary.prompt(questions)
     if not answer:
         raise KeyboardInterrupt
-    selected_index = answer['network']
+    selected_index = answer["network"]
     wifi_name = available_networks[selected_index]
-    connection_name = ''
-    if system == 'Linux':
+    connection_name = ""
+    if system == "Linux":
         connection_name = connections[selected_index]
     return wifi_name, connection_name
 
 
 def get_current_wifi_name(system):
-    if system == 'Windows':
-        return windows_current_wifi_name(), ''
-    if system == 'Darwin':
-        return mac_current_wifi_name(), ''
-    if system != 'Linux':
-        raise ProcessError('Unsupported operating system: ' + system)
+    if system == "Windows":
+        return windows_current_wifi_name(), ""
+    if system == "Darwin":
+        return mac_current_wifi_name(), ""
+    if system != "Linux":
+        raise ProcessError("Unsupported operating system: " + system)
     connection_name = linux_active_wifi_connection()
     wifi_name = linux_wifi_name_for_connection(connection_name)
     return wifi_name, connection_name
 
 
-def get_password(system, wifi_name, connection_name=''):
-    if system == 'Windows':
+def get_password(system, wifi_name, connection_name=""):
+    if system == "Windows":
         return windows_password(wifi_name)
-    if system == 'Darwin':
+    if system == "Darwin":
         return mac_password(wifi_name)
-    if system != 'Linux':
-        raise ProcessError('Unsupported operating system: ' + system)
-    if connection_name == '':
+    if system != "Linux":
+        raise ProcessError("Unsupported operating system: " + system)
+    if connection_name == "":
         connections = linux_wifi_connections()
         matching_connections = []
         for connection in connections:
             if linux_wifi_name_for_connection(connection) == wifi_name:
                 matching_connections.append(connection)
         if len(matching_connections) > 1:
-            raise ProcessError(
-                'Multiple saved Wi-Fi profiles match SSID: ' + wifi_name
-            )
+            raise ProcessError("Multiple saved Wi-Fi profiles match SSID: " + wifi_name)
         if matching_connections:
             connection_name = matching_connections[0]
-    if connection_name == '':
+    if connection_name == "":
         raise ProcessError
     return linux_password(connection_name)
 
 
 def main():
     global verbose
-    parser = argparse.ArgumentParser(formatter_class=argparse.RawDescriptionHelpFormatter, description=ascii_art)
-    parser.add_argument('-v', '--verbose', help='Enable verbose output.', action='store_true')
+    parser = argparse.ArgumentParser(
+        formatter_class=argparse.RawDescriptionHelpFormatter, description=ascii_art
+    )
+    parser.add_argument("-v", "--verbose", help="Enable verbose output.", action="store_true")
     parser.add_argument(
-        '-i',
-        '--image',
-        help='Specify a filename for the generated QR code image. (.png or .svg).\
+        "-i",
+        "--image",
+        help="Specify a filename for the generated QR code image. (.png or .svg).\
                                                   Default: [WIFINAME].svg.\
                                                   If -i/--image argument is not provided the QR code will be displayed\
-                                                  on the console.',
-        nargs='?',
-        default='no-image',
+                                                  on the console.",
+        nargs="?",
+        default="no-image",
     )
     parser.add_argument(
-        '-s',
-        '--ssid',
-        help='Specify the SSID you want the password of.\
-                                                Default: the SSID of the network you are currently connected.',
+        "-s",
+        "--ssid",
+        help="Specify the SSID you want the password of.\
+                                                Default: the SSID of the network you are currently connected.",
     )
-    parser.add_argument('-p', '--password', help='Specify a desired password to be used instead of the stored one.')
-    parser.add_argument('-l', '--list', help='Display a list of stored Wi-Fi networks (SSIDs) to choose from.', action='store_true')
+    parser.add_argument(
+        "-p", "--password", help="Specify a desired password to be used instead of the stored one."
+    )
+    parser.add_argument(
+        "-l",
+        "--list",
+        help="Display a list of stored Wi-Fi networks (SSIDs) to choose from.",
+        action="store_true",
+    )
     args = parser.parse_args()
 
     if args.list and args.ssid:
-        print(bad('The -s/--ssid SSID and -l/--list are mutually exclusive arguments.'))
+        print(bad("The -s/--ssid SSID and -l/--list are mutually exclusive arguments."))
         sys.exit(1)
 
     verbose = args.verbose
     wifi_name = args.ssid
-    connection_name = ''
+    connection_name = ""
     current_wifi_known = False
 
     system = platform.system()
@@ -502,35 +518,39 @@ def main():
             wifi_name, connection_name = choose_saved_wifi(system)
         except ProcessError as e:
             log(bad(e))
-            print(bad('Error getting Wi-Fi connections'))
+            print(bad("Error getting Wi-Fi connections"))
             sys.exit(1)
-        log(run('Retrieving the password for ' + green(wifi_name) + ' Wi-Fi'))
+        log(run("Retrieving the password for " + green(wifi_name) + " Wi-Fi"))
     elif args.ssid is None:
         try:
             wifi_name, connection_name = get_current_wifi_name(system)
             current_wifi_known = True
         except ProcessError as e:
-            if system == 'Darwin':
-                log(info('Could not determine the current Wi-Fi name; showing saved networks instead.'))
+            if system == "Darwin":
+                log(
+                    info(
+                        "Could not determine the current Wi-Fi name; showing saved networks instead."
+                    )
+                )
                 try:
                     wifi_name, connection_name = choose_saved_wifi(system)
                 except ProcessError as inner_error:
                     log(bad(inner_error))
-                    print(bad('Error getting Wi-Fi connections'))
+                    print(bad("Error getting Wi-Fi connections"))
                     sys.exit(1)
                 except KeyboardInterrupt:
-                    log('\nk bye')
+                    log("\nk bye")
                     sys.exit(1)
-                log(run('Retrieving the password for ' + green(wifi_name) + ' Wi-Fi'))
+                log(run("Retrieving the password for " + green(wifi_name) + " Wi-Fi"))
             else:
                 log(bad(e))
-                print(bad('Error getting Wi-Fi name'))
-                print(que('Are you sure you are connected to a Wi-Fi network?'))
+                print(bad("Error getting Wi-Fi name"))
+                print(que("Are you sure you are connected to a Wi-Fi network?"))
                 sys.exit(1)
         if current_wifi_known:
-            log(good('You are connected to ' + green(wifi_name) + ' Wi-Fi'))
+            log(good("You are connected to " + green(wifi_name) + " Wi-Fi"))
     else:
-        log(run('Retrieving the password for ' + green(wifi_name) + ' Wi-Fi'))
+        log(run("Retrieving the password for " + green(wifi_name) + " Wi-Fi"))
 
     if args.password is not None:
         wifi_password = args.password
@@ -539,49 +559,51 @@ def main():
             wifi_password = get_password(system, wifi_name, connection_name)
         except (ProcessError, IOError) as e:
             log(bad(e))
-            print(bad('Error getting Wi-Fi password'))
+            print(bad("Error getting Wi-Fi password"))
             if e.__class__ == IOError:
                 if e.errno == 13:
-                    print(que('Are you root?'))
+                    print(que("Are you root?"))
                 elif e.errno == 2 and args.ssid is not None:
-                    print(que('Are you sure SSID is correct?'))
+                    print(que("Are you sure SSID is correct?"))
             sys.exit(1)
 
-    if wifi_password != '':
-        log(good('The password is ' + green(wifi_password)))
+    if wifi_password != "":
+        log(good("The password is " + green(wifi_password)))
         data = create_QR_string(ssid=wifi_name, password=wifi_password)
     else:
-        log(info('No password needed for this network.'))
-        data = create_QR_string(ssid=wifi_name, security='nopass')
+        log(info("No password needed for this network."))
+        data = create_QR_string(ssid=wifi_name, security="nopass")
 
     qr = create_QR_object(data)
 
-    if args.image == 'no-image':  # If user did not enter the -i/--image argument
+    if args.image == "no-image":  # If user did not enter the -i/--image argument
         qr.print_tty()
     else:
         img = qrcode.make(data)
-        if args.image is None:  # If user selected the -i/--image argument, but did not give any filename
+        if (
+            args.image is None
+        ):  # If user selected the -i/--image argument, but did not give any filename
             img = qrcode.make(data, image_factory=qrcode.image.svg.SvgPathFillImage)
             filename = default_image_filename(wifi_name)
         else:  # If user specified a filename with the -i/--image argument
-            if args.image.lower().endswith('.svg'):
+            if args.image.lower().endswith(".svg"):
                 img = qrcode.make(data, image_factory=qrcode.image.svg.SvgPathFillImage)
                 filename = args.image
-            elif args.image.lower().endswith('.png'):
+            elif args.image.lower().endswith(".png"):
                 filename = args.image
                 img = qr.make_image(fill_color="black", back_color="white")
             else:
                 img = qrcode.make(data, image_factory=qrcode.image.svg.SvgPathFillImage)
-                filename = args.image + '.svg'
+                filename = args.image + ".svg"
         img.save(filename)
-        if system == 'Linux':
+        if system == "Linux":
             fix_ownership(filename)
-        print(good('Qr code drawn in ' + filename))
+        print(good("Qr code drawn in " + filename))
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     try:
         main()
     except KeyboardInterrupt:
-        log('\nk bye')
+        log("\nk bye")
         sys.exit(1)

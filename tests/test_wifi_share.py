@@ -62,12 +62,12 @@ class QrPayloadTests(unittest.TestCase):
     def test_secured_network_payload_escapes_reserved_characters(self):
         payload = wifi_share.create_QR_string(
             ssid='Cafe: guest; "5G"',
-            password=r'pass\word,one',
+            password=r"pass\word,one",
         )
 
         self.assertEqual(
             payload,
-            r'WIFI:T:WPA;S:Cafe\: guest\; \"5G\";P:pass\\word\,one;;',
+            r"WIFI:T:WPA;S:Cafe\: guest\; \"5G\";P:pass\\word\,one;;",
         )
 
     def test_open_network_payload_uses_nopass(self):
@@ -80,12 +80,12 @@ class QrPayloadTests(unittest.TestCase):
 class ImageFilenameTests(unittest.TestCase):
     def test_filename_is_safe_on_all_supported_platforms(self):
         self.assertEqual(
-            wifi_share.sanitize_filename('  Cafe:5G/guest?  '),
-            'Cafe_5G_guest_',
+            wifi_share.sanitize_filename("  Cafe:5G/guest?  "),
+            "Cafe_5G_guest_",
         )
-        self.assertEqual(wifi_share.sanitize_filename('CON'), '_CON')
-        self.assertEqual(wifi_share.sanitize_filename('...'), 'wifi')
-        self.assertEqual(wifi_share.sanitize_filename('Rete italiana'), 'Rete italiana')
+        self.assertEqual(wifi_share.sanitize_filename("CON"), "_CON")
+        self.assertEqual(wifi_share.sanitize_filename("..."), "wifi")
+        self.assertEqual(wifi_share.sanitize_filename("Rete italiana"), "Rete italiana")
 
     def test_default_filename_does_not_overwrite_existing_image(self):
         with tempfile.TemporaryDirectory() as directory:

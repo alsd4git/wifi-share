@@ -40,3 +40,10 @@ Issues = "https://github.com/alsd4git/wifi-share/issues"
 
 [tool.setuptools]
 py-modules = ["wifi_share"]
+
+[dependency-groups]
+dev = ["ruff>=0.13,<1"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py310"
