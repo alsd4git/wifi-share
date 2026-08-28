@@ -6,10 +6,10 @@
 </p>
 
 <p align="center">
-  <a href="/LICENSE"><img alt="MIT License" src="https://img.shields.io/badge/license-MIT-brightgreen.svg"></a>
   <a href="https://github.com/alsd4git/wifi-share/actions/workflows/ci.yml"><img alt="CI" src="https://github.com/alsd4git/wifi-share/actions/workflows/ci.yml/badge.svg"></a>
   <img alt="Python 3.10 or newer" src="https://img.shields.io/badge/python-3.10%2B-blue.svg">
   <img alt="Linux, Windows and macOS" src="https://img.shields.io/badge/platform-linux%20%7C%20windows%20%7C%20macos-lightgrey.svg">
+  <a href="/LICENSE"><img alt="MIT License" src="https://img.shields.io/badge/license-MIT-brightgreen.svg"></a>
 </p>
 
 This repository is a maintained fork of [thanosgn/wifi-share](https://github.com/thanosgn/wifi-share). It adds current packaging, tests, and platform-specific support while preserving the original terminal workflow.
