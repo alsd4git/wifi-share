@@ -7,9 +7,12 @@
 
 <p align="center">
   <a href="/LICENSE"><img alt="MIT License" src="https://img.shields.io/badge/license-MIT-brightgreen.svg"></a>
+  <a href="https://github.com/alsd4git/wifi-share/actions/workflows/ci.yml"><img alt="CI" src="https://github.com/alsd4git/wifi-share/actions/workflows/ci.yml/badge.svg"></a>
   <img alt="Python 3.10 or newer" src="https://img.shields.io/badge/python-3.10%2B-blue.svg">
   <img alt="Linux, Windows and macOS" src="https://img.shields.io/badge/platform-linux%20%7C%20windows%20%7C%20macos-lightgrey.svg">
 </p>
+
+This repository is a maintained fork of [thanosgn/wifi-share](https://github.com/thanosgn/wifi-share). It adds current packaging, tests, and platform-specific support while preserving the original terminal workflow.
 
 ## Requirements
 
@@ -108,6 +111,8 @@ Wi-Fi Share reads the active NetworkManager connection directly and uses its pro
 
 ```bash
 uv run python -m unittest discover -s tests -v
+uv run ruff format --check wifi_share.py tests
+uv run ruff check --select E9,F63,F7,F82 wifi_share.py tests
 uv run python -m compileall -q wifi_share.py tests
 uv build
 ```
@@ -115,6 +120,8 @@ uv build
 GitHub Actions runs these checks on Ubuntu, macOS, and Windows with every supported Python minor version. The hosted runners validate parsing, CLI behavior, and packaging with mocked system output; they cannot access real Wi-Fi hardware or saved credentials.
 
 Before a release, manually smoke-test each platform with an active network, `--list`, an open network, a saved password, SVG output, and PNG output.
+
+Changes that remain useful to the original project can be proposed upstream as focused pull requests after they have passed this repository's cross-platform tests.
 
 ## Example
 
