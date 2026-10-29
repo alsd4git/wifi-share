@@ -1,0 +1,4 @@
+include LICENSE
+include scripts/render_demo.py
+recursive-include docs *.md *.svg
+recursive-include logos *.svg

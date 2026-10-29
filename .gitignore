@@ -109,6 +109,7 @@ venv.bak/
 *.jpg
 *.jpeg
 *.eps
+!docs/demo.svg
 
 #MacOS specific
 .DS_Store
