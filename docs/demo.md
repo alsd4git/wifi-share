@@ -21,3 +21,8 @@ This preview demonstrates image export only. It does not validate saved-profile
 discovery, Keychain access or Wi-Fi hardware on any operating system.
 
 The project logo remains the original upstream artwork under `logos/`.
+
+The README uses absolute GitHub URLs so its images and documentation links also
+work when rendered as package metadata. The demo image and reproduction guide
+are pinned to their committed revision. After regenerating and committing an
+updated preview, update those README URLs to the new revision.
