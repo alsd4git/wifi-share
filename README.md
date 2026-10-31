@@ -131,8 +131,9 @@ uv build
 ```
 
 GitHub Actions runs the tests and CLI smoke check on Ubuntu, macOS, and Windows
-with Python 3.10–3.15. Formatting, lint, syntax and distribution checks run once
-on Ubuntu with Python 3.15. The hosted runners validate command parsing, CLI
+with Python 3.10–3.14. Formatting, lint, syntax and distribution checks run once
+on Ubuntu with Python 3.14. Python 3.15 coverage awaits a Pillow update because
+the pinned version has no compatible wheels. The hosted runners validate command parsing, CLI
 behavior, and packaging with mocked system output; they cannot access real
 Wi-Fi hardware or saved credentials.
 
