@@ -26,7 +26,8 @@ classifiers = [
 dependencies = [
   "qrcode==8.2",
   "huepy==1.2.1",
-  "Pillow==12.1.1",
+  "Pillow==12.3.0; python_version < '3.11'",
+  "Pillow==13.0.0; python_version >= '3.11'",
   "questionary==2.1.1",
 ]
 
