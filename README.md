@@ -130,7 +130,12 @@ uv run python -m compileall -q wifi_share.py tests
 uv build
 ```
 
-GitHub Actions runs these checks on Ubuntu, macOS, and Windows with every supported Python minor version. The hosted runners validate parsing, CLI behavior, and packaging with mocked system output; they cannot access real Wi-Fi hardware or saved credentials.
+GitHub Actions runs the tests and CLI smoke check on Ubuntu, macOS, and Windows
+with Python 3.10–3.14. Formatting, lint, syntax and distribution checks run once
+on Ubuntu with Python 3.14. Python 3.15 coverage awaits a Pillow update because
+the pinned version has no compatible wheels. The hosted runners validate command parsing, CLI
+behavior, and packaging with mocked system output; they cannot access real
+Wi-Fi hardware or saved credentials.
 
 Before a release, manually smoke-test each platform with an active network, `--list`, an open network, a saved password, SVG output, and PNG output.
 
