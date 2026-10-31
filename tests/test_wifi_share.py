@@ -5,6 +5,8 @@ import unittest
 from pathlib import Path
 from unittest.mock import call, patch
 
+from PIL import Image
+
 import wifi_share
 
 
@@ -75,6 +77,21 @@ class QrPayloadTests(unittest.TestCase):
             wifi_share.create_QR_string(ssid="Public Wi-Fi"),
             "WIFI:T:nopass;S:Public Wi-Fi;;",
         )
+
+
+class ImageRenderingTests(unittest.TestCase):
+    def test_png_round_trip_uses_pillow(self):
+        payload = wifi_share.create_QR_string(ssid="Synthetic Wi-Fi", password="test-only")
+        qr = wifi_share.create_QR_object(payload)
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "wifi.png"
+            qr.make_image(fill_color="black", back_color="white").save(path)
+            with Image.open(path) as image:
+                image.load()
+                self.assertEqual(image.format, "PNG")
+                self.assertEqual(image.width, image.height)
+                self.assertGreater(image.width, 0)
+                self.assertEqual(image.getpixel((0, 0)), 255)
 
 
 class ImageFilenameTests(unittest.TestCase):
