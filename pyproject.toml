@@ -8,7 +8,7 @@ version = "0.1.0"
 description = "Instantly share your Wi-Fi connection using a QR code."
 readme = "README.md"
 license = "MIT"
-requires-python = ">=3.10"
+requires-python = ">=3.11"
 keywords = ["wifi", "qr-code", "networking"]
 classifiers = [
   "Development Status :: 4 - Beta",
@@ -17,17 +17,17 @@ classifiers = [
   "Operating System :: Microsoft :: Windows",
   "Operating System :: POSIX :: Linux",
   "Programming Language :: Python :: 3",
-  "Programming Language :: Python :: 3.10",
   "Programming Language :: Python :: 3.11",
   "Programming Language :: Python :: 3.12",
   "Programming Language :: Python :: 3.13",
+  "Programming Language :: Python :: 3.14",
+  "Programming Language :: Python :: 3.15",
   "Topic :: System :: Networking",
 ]
 dependencies = [
   "qrcode==8.2",
   "huepy==1.2.1",
-  "Pillow==12.3.0; python_version < '3.11'",
-  "Pillow==13.0.0; python_version >= '3.11'",
+  "Pillow==13.0.0",
   "questionary==2.1.1",
 ]
 
@@ -47,4 +47,4 @@ dev = ["ruff>=0.13,<1"]
 
 [tool.ruff]
 line-length = 100
-target-version = "py310"
+target-version = "py311"

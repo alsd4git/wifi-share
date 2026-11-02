@@ -7,7 +7,7 @@
 
 <p align="center">
   <a href="https://github.com/alsd4git/wifi-share/actions/workflows/ci.yml"><img alt="CI" src="https://github.com/alsd4git/wifi-share/actions/workflows/ci.yml/badge.svg"></a>
-  <img alt="Python 3.10 or newer" src="https://img.shields.io/badge/python-3.10%2B-blue.svg">
+  <img alt="Python 3.11 or newer" src="https://img.shields.io/badge/python-3.11%2B-blue.svg">
   <img alt="Linux, Windows and macOS" src="https://img.shields.io/badge/platform-linux%20%7C%20windows%20%7C%20macos-lightgrey.svg">
   <a href="https://github.com/alsd4git/wifi-share/blob/master/LICENSE"><img alt="MIT License" src="https://img.shields.io/badge/license-MIT-brightgreen.svg"></a>
 </p>
@@ -24,7 +24,7 @@ It reads no saved profiles and does not access a real network.
 
 ## Requirements
 
-- Python 3.10 or newer.
+- Python 3.11 or newer.
 - Linux: NetworkManager with `nmcli` available on `PATH`.
 - macOS: the built-in `networksetup`, `ipconfig`, `system_profiler`, and `security` tools. Swift is used only as a final SSID-detection fallback when available.
 - Windows: `netsh`; English and Italian system output are supported.
@@ -131,10 +131,10 @@ uv build
 ```
 
 GitHub Actions runs the tests and CLI smoke check on Ubuntu, macOS, and Windows
-with Python 3.10–3.15. Formatting, lint, syntax and distribution checks run once
-on Ubuntu with Python 3.15. Python 3.10 uses Pillow 12.3; newer interpreters use
-Pillow 13, which no longer supports Python 3.10. The hosted runners validate command parsing, CLI
-behavior, and packaging with mocked system output; they cannot access real
+with Python 3.11 through 3.15. Formatting, lint, syntax and distribution checks
+run once on Ubuntu with Python 3.15. All supported Python versions use Pillow 13.
+Python 3.10 is no longer supported. The hosted runners validate command parsing,
+CLI behavior, and packaging with mocked system output; they cannot access real
 Wi-Fi hardware or saved credentials.
 
 Before a release, manually smoke-test each platform with an active network, `--list`, an open network, a saved password, SVG output, and PNG output.
